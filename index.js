@@ -1,10 +1,9 @@
-require('dotenv').config();
+const serverless = require('serverless-http');
 const express = require('express');
 const cors = require('cors');
 const db = require('./db.js');
 
 const app = express();
-const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -51,7 +50,6 @@ app.get('/api/produtos', async (req, res) => {
   }
 });
 
-// ROTA GET
 app.get('/api/roleta/status', async (req, res) => {
   const clientID = req.headers['x-client-id'];
   if (!clientID) {
@@ -79,10 +77,6 @@ app.get('/api/roleta/status', async (req, res) => {
   }
 });
 
-
-// --- Roleta de desconto ---
-
-// POST (verifica o cooldown e sorteia a categoria)
 app.post('/api/roleta/girar', async (req, res) => {
   const clientID = req.headers['x-client-id'];
   if (!clientID) {
@@ -109,7 +103,6 @@ app.post('/api/roleta/girar', async (req, res) => {
   }
 });
 
-// ROTA PATCH
 app.patch('/api/roleta/ativar-desconto', async (req, res) => {
   const clientID = req.headers['x-client-id'];
   const { categoria } = req.body;
@@ -151,29 +144,23 @@ app.patch('/api/roleta/ativar-desconto', async (req, res) => {
   }
 });
 
-
-// --- ROTA DELETE ---
 app.delete('/api/desconto', async (req, res) => {
-    const clientID = req.headers['x-client-id'];
-    if (!clientID) {
-        return res.status(400).json({ error: 'Client ID não fornecido' });
-    }
+  const clientID = req.headers['x-client-id'];
+  if (!clientID) {
+    return res.status(400).json({ error: 'Client ID não fornecido' });
+  }
 
-    try {
-        const result = await db.query('DELETE FROM descontos_ativos_anonimos WHERE client_id = $1', [clientID]);
-        if (result.rowCount > 0) {
-            res.status(200).json({ message: 'Desconto removido com sucesso.' });
-        } else {
-            res.status(404).json({ message: 'Nenhum desconto ativo encontrado para remover.' });
-        }
-    } catch (err) {
-        console.error("Erro ao remover desconto:", err);
-        res.status(500).json({ error: 'Erro interno do servidor ao remover desconto.' });
+  try {
+    const result = await db.query('DELETE FROM descontos_ativos_anonimos WHERE client_id = $1', [clientID]);
+    if (result.rowCount > 0) {
+      res.status(200).json({ message: 'Desconto removido com sucesso.' });
+    } else {
+      res.status(404).json({ message: 'Nenhum desconto ativo encontrado para remover.' });
     }
+  } catch (err) {
+    console.error("Erro ao remover desconto:", err);
+    res.status(500).json({ error: 'Erro interno do servidor ao remover desconto.' });
+  }
 });
 
-
-// Inicia o servidor para escutar na porta definida
-app.listen(port, () => {
-  console.log(`Servidor back-end rodando na porta ${port}`);
-});
+module.exports.handler = serverless(app);
